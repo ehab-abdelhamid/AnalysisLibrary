@@ -1,0 +1,165 @@
+--- src/kd_fix_rad_search.cpp	2010-01-27 20:40:01.000000000 -0800
++++ src/kd_fix_rad_search.cpp	2011-02-12 20:39:22.000000000 -0800
+@@ -42,14 +42,6 @@
+ //		These are given below.
+ //----------------------------------------------------------------------
+ 
+-int				ANNkdFRDim;				// dimension of space
+-ANNpoint		ANNkdFRQ;				// query point
+-ANNdist			ANNkdFRSqRad;			// squared radius search bound
+-double			ANNkdFRMaxErr;			// max tolerable squared error
+-ANNpointArray	ANNkdFRPts;				// the points
+-ANNmin_k*		ANNkdFRPointMK;			// set of k closest points
+-int				ANNkdFRPtsVisited;		// total points visited
+-int				ANNkdFRPtsInRange;		// number of points in the range
+ 
+ //----------------------------------------------------------------------
+ //	annkFRSearch - fixed radius search for k nearest neighbors
+@@ -61,31 +53,32 @@
+ 	int					k,				// number of near neighbors to return
+ 	ANNidxArray			nn_idx,			// nearest neighbor indices (returned)
+ 	ANNdistArray		dd,				// the approximate nearest neighbor
+-	double				eps)			// the error bound
++	double				eps,			// the error bound
++	int			maxPts)
+ {
+-	ANNkdFRDim = dim;					// copy arguments to static equivs
+-	ANNkdFRQ = q;
+-	ANNkdFRSqRad = sqRad;
+-	ANNkdFRPts = pts;
+-	ANNkdFRPtsVisited = 0;				// initialize count of points visited
+-	ANNkdFRPtsInRange = 0;				// ...and points in the range
++	ANNkd_fr_context context(k);
++	context.maxPtsVisited = maxPts;
++	context.dim = dim;					// copy arguments to static equivs
++	context.q = q;
++	context.sqRad = sqRad;
++	context.pts = pts;
++	context.ptsVisited = 0;				// initialize count of points visited
++	context.ptsInRange = 0;				// ...and points in the range
+ 
+-	ANNkdFRMaxErr = ANN_POW(1.0 + eps);
++	context.maxErr = ANN_POW(1.0 + eps);
+ 	ANN_FLOP(2)							// increment floating op count
+ 
+-	ANNkdFRPointMK = new ANNmin_k(k);	// create set for closest k points
+ 										// search starting at the root
+-	root->ann_FR_search(annBoxDistance(q, bnd_box_lo, bnd_box_hi, dim));
++	root->ann_FR_search(annBoxDistance(q, bnd_box_lo, bnd_box_hi, dim), context);
+ 
+ 	for (int i = 0; i < k; i++) {		// extract the k-th closest points
+ 		if (dd != NULL)
+-			dd[i] = ANNkdFRPointMK->ith_smallest_key(i);
++			dd[i] = context.pointMK->ith_smallest_key(i);
+ 		if (nn_idx != NULL)
+-			nn_idx[i] = ANNkdFRPointMK->ith_smallest_info(i);
++			nn_idx[i] = context.pointMK->ith_smallest_info(i);
+ 	}
+ 
+-	delete ANNkdFRPointMK;				// deallocate closest point set
+-	return ANNkdFRPtsInRange;			// return final point count
++	return context.ptsInRange;			// return final point count
+ }
+ 
+ //----------------------------------------------------------------------
+@@ -97,18 +90,18 @@
+ //		code structure for the sake of uniformity.
+ //----------------------------------------------------------------------
+ 
+-void ANNkd_split::ann_FR_search(ANNdist box_dist)
++void ANNkd_split::ann_FR_search(ANNdist box_dist, ANNkd_fr_context& context)
+ {
+ 										// check dist calc term condition
+-	if (ANNmaxPtsVisited != 0 && ANNkdFRPtsVisited > ANNmaxPtsVisited) return;
++	if (context.maxPtsVisited != 0 && context.ptsVisited > context.maxPtsVisited) return;
+ 
+ 										// distance to cutting plane
+-	ANNcoord cut_diff = ANNkdFRQ[cut_dim] - cut_val;
++	ANNdist cut_diff = context.q[cut_dim] - cut_val;
+ 
+ 	if (cut_diff < 0) {					// left of cutting plane
+-		child[ANN_LO]->ann_FR_search(box_dist);// visit closer child first
++		child[ANN_LO]->ann_FR_search(box_dist, context);// visit closer child first
+ 
+-		ANNcoord box_diff = cd_bnds[ANN_LO] - ANNkdFRQ[cut_dim];
++		ANNcoord box_diff = cd_bnds[ANN_LO] - context.q[cut_dim];
+ 		if (box_diff < 0)				// within bounds - ignore
+ 			box_diff = 0;
+ 										// distance to further box
+@@ -116,14 +109,14 @@
+ 				ANN_DIFF(ANN_POW(box_diff), ANN_POW(cut_diff)));
+ 
+ 										// visit further child if in range
+-		if (box_dist * ANNkdFRMaxErr <= ANNkdFRSqRad)
+-			child[ANN_HI]->ann_FR_search(box_dist);
++		if (box_dist * context.maxErr <= context.sqRad)
++			child[ANN_HI]->ann_FR_search(box_dist, context);
+ 
+ 	}
+ 	else {								// right of cutting plane
+-		child[ANN_HI]->ann_FR_search(box_dist);// visit closer child first
++		child[ANN_HI]->ann_FR_search(box_dist, context);// visit closer child first
+ 
+-		ANNcoord box_diff = ANNkdFRQ[cut_dim] - cd_bnds[ANN_HI];
++		ANNcoord box_diff = context.q[cut_dim] - cd_bnds[ANN_HI];
+ 		if (box_diff < 0)				// within bounds - ignore
+ 			box_diff = 0;
+ 										// distance to further box
+@@ -131,8 +124,8 @@
+ 				ANN_DIFF(ANN_POW(box_diff), ANN_POW(cut_diff)));
+ 
+ 										// visit further child if close enough
+-		if (box_dist * ANNkdFRMaxErr <= ANNkdFRSqRad)
+-			child[ANN_LO]->ann_FR_search(box_dist);
++		if (box_dist * context.maxErr <= context.sqRad)
++			child[ANN_LO]->ann_FR_search(box_dist, context);
+ 
+ 	}
+ 	ANN_FLOP(13)						// increment floating ops
+@@ -145,7 +138,7 @@
+ //		some fine tuning to replace indexing by pointer operations.
+ //----------------------------------------------------------------------
+ 
+-void ANNkd_leaf::ann_FR_search(ANNdist box_dist)
++void ANNkd_leaf::ann_FR_search(ANNdist box_dist, ANNkd_fr_context& context)
+ {
+ 	register ANNdist dist;				// distance to data point
+ 	register ANNcoord* pp;				// data coordinate pointer
+@@ -155,29 +148,29 @@
+ 
+ 	for (int i = 0; i < n_pts; i++) {	// check points in bucket
+ 
+-		pp = ANNkdFRPts[bkt[i]];		// first coord of next data point
+-		qq = ANNkdFRQ;					// first coord of query point
++		pp = context.pts[bkt[i]];		// first coord of next data point
++		qq = context.q;					// first coord of query point
+ 		dist = 0;
+ 
+-		for(d = 0; d < ANNkdFRDim; d++) {
++		for(d = 0; d < context.dim; d++) {
+ 			ANN_COORD(1)				// one more coordinate hit
+ 			ANN_FLOP(5)					// increment floating ops
+ 
+ 			t = *(qq++) - *(pp++);		// compute length and adv coordinate
+ 										// exceeds dist to k-th smallest?
+-			if( (dist = ANN_SUM(dist, ANN_POW(t))) > ANNkdFRSqRad) {
++			if( (dist = ANN_SUM(dist, ANN_POW(t))) > context.sqRad) {
+ 				break;
+ 			}
+ 		}
+ 
+-		if (d >= ANNkdFRDim &&					// among the k best?
++		if (d >= context.dim &&					// among the k best?
+ 		   (ANN_ALLOW_SELF_MATCH || dist!=0)) { // and no self-match problem
+ 												// add it to the list
+-			ANNkdFRPointMK->insert(dist, bkt[i]);
+-			ANNkdFRPtsInRange++;				// increment point count
++			context.pointMK->insert(dist, bkt[i]);
++			context.ptsInRange++;				// increment point count
+ 		}
+ 	}
+ 	ANN_LEAF(1)							// one more leaf node visited
+ 	ANN_PTS(n_pts)						// increment points visited
+-	ANNkdFRPtsVisited += n_pts;			// increment number of points visited
++	context.ptsVisited += n_pts;			// increment number of points visited
+ }

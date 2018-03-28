@@ -1,0 +1,16 @@
+Dear Ehab,
+I'm attaching a patch file. I believe that this is (roughly) what you need to do, assuming you have access to a linux/unix system or something analogous (such as mingw or cygwin) on Windows.
+
+1. Unzip the attached file. 
+2. Move the file kd_context.h into ann_1.1.2/src
+3. Move the file patch.txt into ann_1.1.2
+4. While in ann_1.1.2, run the command "patch -p 1 -i patch_1.1.2.txt"
+
+This should modify the source files to make them thread-safe. Then recompile everything.
+
+Please note that I have not tested this, so I am not sure that it works. But I looked that the files, and it appears to be reasonable.
+
+Let me know if it works.
+
+Best,
+Dave

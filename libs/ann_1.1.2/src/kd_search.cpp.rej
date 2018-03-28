@@ -1,0 +1,166 @@
+--- src/kd_search.cpp	2010-01-27 20:40:01.000000000 -0800
++++ src/kd_search.cpp	2011-02-12 20:40:10.000000000 -0800
+@@ -25,6 +25,7 @@
+ //----------------------------------------------------------------------
+ 
+ #include "kd_search.h"					// kd-search declarations
++#include "kd_context.h"
+ 
+ //----------------------------------------------------------------------
+ //	Approximate nearest neighbor searching by kd-tree search
+@@ -76,11 +77,6 @@
+ //		These are given below.
+ //----------------------------------------------------------------------
+ 
+-int				ANNkdDim;				// dimension of space
+-ANNpoint		ANNkdQ;					// query point
+-double			ANNkdMaxErr;			// max tolerable squared error
+-ANNpointArray	ANNkdPts;				// the points
+-ANNmin_k		*ANNkdPointMK;			// set of k closest points
+ 
+ //----------------------------------------------------------------------
+ //	annkSearch - search for the k nearest neighbors
+@@ -91,48 +87,48 @@
+ 	int					k,				// number of near neighbors to return
+ 	ANNidxArray			nn_idx,			// nearest neighbor indices (returned)
+ 	ANNdistArray		dd,				// the approximate nearest neighbor
+-	double				eps)			// the error bound
++	double				eps,			// the error bound
++	int			maxPts)
+ {
+ 
+-	ANNkdDim = dim;						// copy arguments to static equivs
+-	ANNkdQ = q;
+-	ANNkdPts = pts;
+-	ANNptsVisited = 0;					// initialize count of points visited
+-
++	ANNkd_context context(k);
++	context.maxPtsVisited = maxPts;
++	context.dim = dim;					// copy arguments to static equivs
++	context.q = q;
++	context.pts = pts;
++	context.ptsVisited = 0;					// initialize count of points visit
+ 	if (k > n_pts) {					// too many near neighbors?
+ 		annError("Requesting more near neighbors than data points", ANNabort);
+ 	}
+ 
+-	ANNkdMaxErr = ANN_POW(1.0 + eps);
++	context.maxErr = ANN_POW(1.0 + eps);
+ 	ANN_FLOP(2)							// increment floating op count
+ 
+-	ANNkdPointMK = new ANNmin_k(k);		// create set for closest k points
+ 										// search starting at the root
+-	root->ann_search(annBoxDistance(q, bnd_box_lo, bnd_box_hi, dim));
++	root->ann_search(annBoxDistance(q, bnd_box_lo, bnd_box_hi, dim), context);
+ 
+ 	for (int i = 0; i < k; i++) {		// extract the k-th closest points
+-		dd[i] = ANNkdPointMK->ith_smallest_key(i);
+-		nn_idx[i] = ANNkdPointMK->ith_smallest_info(i);
++		dd[i] = context.pointMK->ith_smallest_key(i);
++		nn_idx[i] = context.pointMK->ith_smallest_info(i);
+ 	}
+-	delete ANNkdPointMK;				// deallocate closest point set
+ }
+ 
+ //----------------------------------------------------------------------
+ //	kd_split::ann_search - search a splitting node
+ //----------------------------------------------------------------------
+ 
+-void ANNkd_split::ann_search(ANNdist box_dist)
++void ANNkd_split::ann_search(ANNdist box_dist, ANNkd_context& context)
+ {
+ 										// check dist calc term condition
+-	if (ANNmaxPtsVisited != 0 && ANNptsVisited > ANNmaxPtsVisited) return;
++	if (context.maxPtsVisited != 0 && context.ptsVisited > context.maxPtsVisited) return;
+ 
+ 										// distance to cutting plane
+-	ANNcoord cut_diff = ANNkdQ[cut_dim] - cut_val;
++	ANNdist cut_diff = context.q[cut_dim] - cut_val;
+ 
+ 	if (cut_diff < 0) {					// left of cutting plane
+-		child[ANN_LO]->ann_search(box_dist);// visit closer child first
++		child[ANN_LO]->ann_search(box_dist, context);// visit closer child first
+ 
+-		ANNcoord box_diff = cd_bnds[ANN_LO] - ANNkdQ[cut_dim];
++		ANNcoord box_diff = cd_bnds[ANN_LO] - context.q[cut_dim];
+ 		if (box_diff < 0)				// within bounds - ignore
+ 			box_diff = 0;
+ 										// distance to further box
+@@ -140,14 +136,14 @@
+ 				ANN_DIFF(ANN_POW(box_diff), ANN_POW(cut_diff)));
+ 
+ 										// visit further child if close enough
+-		if (box_dist * ANNkdMaxErr < ANNkdPointMK->max_key())
+-			child[ANN_HI]->ann_search(box_dist);
++		if (box_dist * context.maxErr < context.pointMK->max_key())
++			child[ANN_HI]->ann_search(box_dist, context);
+ 
+ 	}
+ 	else {								// right of cutting plane
+-		child[ANN_HI]->ann_search(box_dist);// visit closer child first
++		child[ANN_HI]->ann_search(box_dist, context);// visit closer child first
+ 
+-		ANNcoord box_diff = ANNkdQ[cut_dim] - cd_bnds[ANN_HI];
++		ANNcoord box_diff = context.q[cut_dim] - cd_bnds[ANN_HI];
+ 		if (box_diff < 0)				// within bounds - ignore
+ 			box_diff = 0;
+ 										// distance to further box
+@@ -155,8 +151,8 @@
+ 				ANN_DIFF(ANN_POW(box_diff), ANN_POW(cut_diff)));
+ 
+ 										// visit further child if close enough
+-		if (box_dist * ANNkdMaxErr < ANNkdPointMK->max_key())
+-			child[ANN_LO]->ann_search(box_dist);
++		if (box_dist * context.maxErr < context.pointMK->max_key())
++			child[ANN_LO]->ann_search(box_dist, context);
+ 
+ 	}
+ 	ANN_FLOP(10)						// increment floating ops
+@@ -169,7 +165,7 @@
+ //		some fine tuning to replace indexing by pointer operations.
+ //----------------------------------------------------------------------
+ 
+-void ANNkd_leaf::ann_search(ANNdist box_dist)
++void ANNkd_leaf::ann_search(ANNdist box_dist, ANNkd_context& context)
+ {
+ 	register ANNdist dist;				// distance to data point
+ 	register ANNcoord* pp;				// data coordinate pointer
+@@ -178,15 +174,15 @@
+ 	register ANNcoord t;
+ 	register int d;
+ 
+-	min_dist = ANNkdPointMK->max_key(); // k-th smallest distance so far
++	min_dist = context.pointMK->max_key(); // k-th smallest distance so far
+ 
+ 	for (int i = 0; i < n_pts; i++) {	// check points in bucket
+ 
+-		pp = ANNkdPts[bkt[i]];			// first coord of next data point
+-		qq = ANNkdQ;					// first coord of query point
++		pp = context.pts[bkt[i]];			// first coord of next data point
++		qq = context.q;					// first coord of query point
+ 		dist = 0;
+ 
+-		for(d = 0; d < ANNkdDim; d++) {
++		for(d = 0; d < context.dim; d++) {
+ 			ANN_COORD(1)				// one more coordinate hit
+ 			ANN_FLOP(4)					// increment floating ops
+ 
+@@ -197,14 +193,14 @@
+ 			}
+ 		}
+ 
+-		if (d >= ANNkdDim &&					// among the k best?
++		if (d >= context.dim &&					// among the k best?
+ 		   (ANN_ALLOW_SELF_MATCH || dist!=0)) { // and no self-match problem
+ 												// add it to the list
+-			ANNkdPointMK->insert(dist, bkt[i]);
+-			min_dist = ANNkdPointMK->max_key();
++			context.pointMK->insert(dist, bkt[i]);
++			min_dist = context.pointMK->max_key();
+ 		}
+ 	}
+ 	ANN_LEAF(1)							// one more leaf node visited
+ 	ANN_PTS(n_pts)						// increment points visited
+-	ANNptsVisited += n_pts;				// increment number of points visited
++	context.ptsVisited += n_pts;				// increment number of points visited
+ }

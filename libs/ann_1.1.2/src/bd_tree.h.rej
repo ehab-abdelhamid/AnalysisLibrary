@@ -1,0 +1,23 @@
+--- src/bd_tree.h	2010-01-27 20:40:01.000000000 -0800
++++ src/bd_tree.h	2011-02-12 19:40:36.000000000 -0800
+@@ -29,6 +29,7 @@
+ 
+ #include <ANN/ANNx.h>					// all ANN includes
+ #include "kd_tree.h"					// kd-tree includes
++#include "kd_context.h"
+ 
+ //----------------------------------------------------------------------
+ //	bd-tree shrinking node.
+@@ -92,9 +93,9 @@
+ 	virtual void print(int level, ostream &out);// print node
+ 	virtual void dump(ostream &out);			// dump node
+ 
+-	virtual void ann_search(ANNdist);			// standard search
+-	virtual void ann_pri_search(ANNdist);		// priority search
+-	virtual void ann_FR_search(ANNdist); 		// fixed-radius search
++	virtual void ann_search(ANNdist, ANNkd_context&);			// standard search
++	virtual void ann_pri_search(ANNdist, ANNkd_pr_context&);		// priority search
++	virtual void ann_FR_search(ANNdist, ANNkd_fr_context&); 		// fixed-radius search
+ };
+ 
+ #endif

@@ -1,0 +1,43 @@
+#
+# Copyright (C) 2012, Northwestern University and Argonne National Laboratory
+# See COPYRIGHT notice in top-level directory.
+#
+# $Id: Makefile.am 3512 2017-11-10 01:04:14Z wkliao $
+#
+# @configure_input@
+
+SUFFIXES = .o .c
+
+AM_CPPFLAGS = -I$(top_builddir)/src/include
+LDADD = $(top_builddir)/src/libs/libpnetcdf.la
+
+check_PROGRAMS = aggregation \
+                 write_block_read_column
+
+# parallel runs only
+# TESTS = $(check_PROGRAMS)
+
+NC_FILES = $(check_PROGRAMS:%=$(TESTOUTDIR)/%.nc)
+
+CLEANFILES = core core.* *.gcda *.gcno *.gcov gmon.out \
+             $(NC_FILES)
+
+TESTMPIRUN4  = `echo $(TESTMPIRUN) | $(SED) -e 's/NP/4/g'`
+
+ptest ptests ptest4: $(check_PROGRAMS)
+	for i in $(check_PROGRAMS); do { \
+	$(TESTMPIRUN4) ./$$i -q 10 $(TESTOUTDIR)/$$i.nc ; \
+	if [ $$? = 0 ] ; then \
+	    echo "PASS:  C  parallel run on 4 processes --------------- $$i"; \
+	else \
+	    echo "FAILED:  C  parallel run on 4 processes ------------- $$i"; \
+	    exit 1; \
+	fi ; } ; done
+
+ptest2 ptest6 ptest8 ptest10:
+
+# build check targets but not invoke
+tests-local: all $(check_PROGRAMS)
+
+.PHONY: ptest ptests ptest2 ptest4 ptest6 ptest8 ptest10
+

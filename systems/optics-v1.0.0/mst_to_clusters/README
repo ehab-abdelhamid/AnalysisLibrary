@@ -1,0 +1,60 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*   Files: omp_main.cpp clusters.cpp  clusters.h utils.h utils.cpp          */
+/*                      optics.cpp optics.h kdtree2.cpp kdtree2.hpp          */
+/*			mutable_priority_queue.h			     */
+/*                                                                           */
+/*   Description: an openmp implementation of OPTICS clustering algorithm    */
+/*                              using Graph Algorithmic Techniques           */
+/*                                                                           */
+/*   Author:  Md. Mostofa Ali Patwary                                        */
+/*            EECS Department, Northwestern University                       */
+/*            Email: mostofa.patwary@gmail.com                               */
+/*                                                                           */
+/*   Copyright, 2013, Northwestern University                                */
+/*   See COPYRIGHT notice in top-level directory.                            */
+/*                                                                           */
+/*   Please cite the following publication if you use this package           */
+/*                                                                           */
+/*   Md. Mostofa Ali Patwary, Diana Palsetia, Ankit Agrawal, Wei-keng Liao,  */
+/*   Fredrik Manne, and Alok Choudhary, "Scalable Parallel OPTICS Data 	     */
+/*   Clustering Using Graph Algorithmic Techniques", Proceedings of the      */
+/*   International Conference on High Performance Computing, Networking,     */
+/*   Storage and Analysis (Supercomputing, SC'13), pp.49:1-49:12, 2013.      */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+
+Extracting clusters in parallel from MST using the Union-Find algorithm (also known as disjoint set data structure)
+
+How to run the tool:
+1. Compile the source files using the following command
+
+        make
+
+2. Run using following command
+
+        ./mst_to_clusters -i filename -e epsilon_prime -t threads -o filename
+
+        Example:
+
+        ./mst_to_clusters -i clus50k_mst -e 30 -t 24 -o clus50k_clusters
+
+        Run the following to get detail description on the program arguments.
+
+        ./mst_to_clusters ?
+
+3. Input file format:
+
+        Text file:
+	First line contains the number of points followed by nubmer of edges in the MSTs.
+	Each of the rest lines contains the followings four values u, v, w, and d where
+		u is the point reachable_to from point v with reachability distance w and d is the core distance of v.
+	The points in the MST is 0 indexed.
+
+	[Note that this file is basically the output of the multicore/mpi optics algorithm]
+
+4. Output file format:
+
+	Text file:
+	Each line contains the point id and its cluster ID.
+	The points are zero indexed and noise are represented by ID=0.

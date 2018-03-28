@@ -1,0 +1,12 @@
+--- include/ANN/ANNx.h	2010-01-27 20:40:01.000000000 -0800
++++ include/ANN/ANNx.h	2011-02-12 19:40:47.000000000 -0800
+@@ -55,9 +55,6 @@
+ //	and the algorithm applies its normal termination condition.
+ //----------------------------------------------------------------------
+ 
+-extern int		ANNmaxPtsVisited;	// maximum number of pts visited
+-extern int		ANNptsVisited;		// number of pts visited in search
+-
+ //----------------------------------------------------------------------
+ //	Global function declarations
+ //----------------------------------------------------------------------

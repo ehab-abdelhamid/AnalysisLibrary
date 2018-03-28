@@ -1,0 +1,32 @@
+--- src/kd_tree.cpp	2010-01-27 20:40:01.000000000 -0800
++++ src/kd_tree.cpp	2011-02-12 19:40:36.000000000 -0800
+@@ -47,7 +47,8 @@
+ //	one tree).
+ //----------------------------------------------------------------------
+ static int				IDX_TRIVIAL[] = {0};	// trivial point index
+-ANNkd_leaf				*KD_TRIVIAL = NULL;		// trivial leaf node
++static ANNkd_leaf			kd_trivial_leaf(0, IDX_TRIVIAL); 
++ANNkd_leaf				*KD_TRIVIAL = &kd_trivial_leaf;
+ 
+ //----------------------------------------------------------------------
+ //	Printing the kd-tree 
+@@ -220,10 +221,6 @@
+ //----------------------------------------------------------------------
+ void annClose()				// close use of ANN
+ {
+-	if (KD_TRIVIAL != NULL) {
+-		delete KD_TRIVIAL;
+-		KD_TRIVIAL = NULL;
+-	}
+ }
+ 
+ //----------------------------------------------------------------------
+@@ -266,8 +263,6 @@
+ 	}
+ 
+ 	bnd_box_lo = bnd_box_hi = NULL;		// bounding box is nonexistent
+-	if (KD_TRIVIAL == NULL)				// no trivial leaf node yet?
+-		KD_TRIVIAL = new ANNkd_leaf(0, IDX_TRIVIAL);	// allocate it
+ }
+ 
+ ANNkd_tree::ANNkd_tree(					// basic constructor

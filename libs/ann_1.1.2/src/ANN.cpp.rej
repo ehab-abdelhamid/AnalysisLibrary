@@ -1,0 +1,19 @@
+--- src/ANN.cpp	2010-01-27 20:40:01.000000000 -0800
++++ src/ANN.cpp	2011-02-12 19:40:36.000000000 -0800
+@@ -186,16 +186,3 @@
+ //		This is for applications where there are real time constraints
+ //		on the running time of the algorithm.
+ //----------------------------------------------------------------------
+-
+-int	ANNmaxPtsVisited = 0;	// maximum number of pts visited
+-int	ANNptsVisited;			// number of pts visited in search
+-
+-//----------------------------------------------------------------------
+-//	Global function declarations
+-//----------------------------------------------------------------------
+-
+-void annMaxPtsVisit(			// set limit on max. pts to visit in search
+-	int					maxPts)			// the limit
+-{
+-	ANNmaxPtsVisited = maxPts;
+-}

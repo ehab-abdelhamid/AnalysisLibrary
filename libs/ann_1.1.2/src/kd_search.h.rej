@@ -1,0 +1,14 @@
+--- src/kd_search.h	2010-01-27 20:40:01.000000000 -0800
++++ src/kd_search.h	2011-02-12 19:40:36.000000000 -0800
+@@ -38,11 +38,5 @@
+ //		among the various search procedures.
+ //----------------------------------------------------------------------
+ 
+-extern int				ANNkdDim;		// dimension of space (static copy)
+-extern ANNpoint			ANNkdQ;			// query point (static copy)
+-extern double			ANNkdMaxErr;	// max tolerable squared error
+-extern ANNpointArray	ANNkdPts;		// the points (static copy)
+-extern ANNmin_k			*ANNkdPointMK;	// set of k closest points
+-extern int				ANNptsVisited;	// number of points visited
+ 
+ #endif

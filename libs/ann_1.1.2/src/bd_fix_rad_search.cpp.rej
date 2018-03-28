@@ -1,0 +1,36 @@
+--- src/bd_fix_rad_search.cpp	2010-01-27 20:40:01.000000000 -0800
++++ src/bd_fix_rad_search.cpp	2011-02-12 19:40:36.000000000 -0800
+@@ -36,25 +36,25 @@
+ //	bd_shrink::ann_FR_search - search a shrinking node
+ //----------------------------------------------------------------------
+ 
+-void ANNbd_shrink::ann_FR_search(ANNdist box_dist)
++void ANNbd_shrink::ann_FR_search(ANNdist box_dist, ANNkd_fr_context& context)
+ {
+ 												// check dist calc term cond.
+-	if (ANNmaxPtsVisited != 0 && ANNptsVisited > ANNmaxPtsVisited) return;
++	if (context.maxPtsVisited != 0 && context.ptsVisited > context.maxPtsVisited) return;
+ 
+ 	ANNdist inner_dist = 0;						// distance to inner box
+ 	for (int i = 0; i < n_bnds; i++) {			// is query point in the box?
+-		if (bnds[i].out(ANNkdFRQ)) {			// outside this bounding side?
++		if (bnds[i].out(context.q)) {			// outside this bounding side?
+ 												// add to inner distance
+-			inner_dist = (ANNdist) ANN_SUM(inner_dist, bnds[i].dist(ANNkdFRQ));
++			inner_dist = (ANNdist) ANN_SUM(inner_dist, bnds[i].dist(context.q));
+ 		}
+ 	}
+ 	if (inner_dist <= box_dist) {				// if inner box is closer
+-		child[ANN_IN]->ann_FR_search(inner_dist);// search inner child first
+-		child[ANN_OUT]->ann_FR_search(box_dist);// ...then outer child
++		child[ANN_IN]->ann_FR_search(inner_dist, context);// search inner child first
++		child[ANN_OUT]->ann_FR_search(box_dist, context);// ...then outer child
+ 	}
+ 	else {										// if outer box is closer
+-		child[ANN_OUT]->ann_FR_search(box_dist);// search outer child first
+-		child[ANN_IN]->ann_FR_search(inner_dist);// ...then outer child
++		child[ANN_OUT]->ann_FR_search(box_dist, context);// search outer child first
++		child[ANN_IN]->ann_FR_search(inner_dist, context);// ...then outer child
+ 	}
+ 	ANN_FLOP(3*n_bnds)							// increment floating ops
+ 	ANN_SHR(1)									// one more shrinking node

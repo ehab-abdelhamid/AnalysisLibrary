@@ -1,0 +1,49 @@
+--- src/kd_tree.h	2010-01-27 20:40:01.000000000 -0800
++++ src/kd_tree.h	2011-02-12 20:34:32.000000000 -0800
+@@ -28,6 +28,7 @@
+ #define ANN_kd_tree_H
+ 
+ #include <ANN/ANNx.h>					// all ANN includes
++#include "kd_context.h"
+ 
+ using namespace std;					// make std:: available
+ 
+@@ -47,9 +48,9 @@
+ public:
+ 	virtual ~ANNkd_node() {}					// virtual distroyer
+ 
+-	virtual void ann_search(ANNdist) = 0;		// tree search
+-	virtual void ann_pri_search(ANNdist) = 0;	// priority search
+-	virtual void ann_FR_search(ANNdist) = 0;	// fixed-radius search
++	virtual void ann_search(ANNdist, ANNkd_context&) = 0;		// tree search
++	virtual void ann_pri_search(ANNdist, ANNkd_pr_context&) = 0;	// priority search
++	virtual void ann_FR_search(ANNdist, ANNkd_fr_context&) = 0;	// fixed-radius search
+ 
+ 	virtual void getStats(						// get tree statistics
+ 				int dim,						// dimension of space
+@@ -110,9 +111,9 @@
+ 	virtual void print(int level, ostream &out);// print node
+ 	virtual void dump(ostream &out);			// dump node
+ 
+-	virtual void ann_search(ANNdist);			// standard search
+-	virtual void ann_pri_search(ANNdist);		// priority search
+-	virtual void ann_FR_search(ANNdist);		// fixed-radius search
++	virtual void ann_search(ANNdist, ANNkd_context&);			// standard search
++	virtual void ann_pri_search(ANNdist, ANNkd_pr_context&);		// priority search
++	virtual void ann_FR_search(ANNdist, ANNkd_fr_context&);		// fixed-radius search
+ };
+ 
+ //----------------------------------------------------------------------
+@@ -176,9 +177,9 @@
+ 	virtual void print(int level, ostream &out);// print node
+ 	virtual void dump(ostream &out);			// dump node
+ 
+-	virtual void ann_search(ANNdist);			// standard search
+-	virtual void ann_pri_search(ANNdist);		// priority search
+-	virtual void ann_FR_search(ANNdist);		// fixed-radius search
++	virtual void ann_search(ANNdist, ANNkd_context&);			// standard search
++	virtual void ann_pri_search(ANNdist, ANNkd_pr_context&);		// priority search
++	virtual void ann_FR_search(ANNdist, ANNkd_fr_context&);		// fixed-radius search
+ };
+ 
+ //----------------------------------------------------------------------

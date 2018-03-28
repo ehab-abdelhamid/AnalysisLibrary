@@ -1,0 +1,11 @@
+bad_nvars.nc
+bad_magic.nc
+
+bad_padding_name_dim.nc
+bad_padding_name_gattr.nc
+bad_padding_name_vattr.nc
+bad_padding_name_var.nc
+
+bad_padding_value_dim.nc     xxxx
+bad_padding_value_gattr.nc
+bad_padding_value_vattr.nc
